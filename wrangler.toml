@@ -12,5 +12,5 @@ id = "b05710f50ec6435b901585da722ee7a6"
 
 # 路由加/*匹配所有接口路径
 [[routes]]
-pattern = "shop.zztxer.dpdns.org/*"
+pattern = "shop.zztxer.dpdns.org"
 custom_domain = true
