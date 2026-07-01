@@ -3,24 +3,20 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Access-Control-Max-Age": "86400",
-  "Cache-Control": "no-store, no-cache, must-revalidate"
+  "Access-Control-Max-Age": "86400"
 };
-
 export default {
   async fetch(request, env) {
     const GoodShop = env.GoodShop;
     const Shop = env.Shop;
     const url = new URL(request.url);
     const path = url.pathname;
-
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
         headers: CORS_HEADERS
       });
     }
-
     try {
       // 调试接口，查看两个KV的key数量
       if (path === "/api/debug") {
@@ -49,12 +45,11 @@ export default {
         }, { headers: CORS_HEADERS });
       }
 
-      // ========== 商品接口 ==========
+      // 商品列表
       if (path === "/api/goods" && request.method === "GET") {
         let goodsList = [];
         let cursor = null;
         do {
-          // 每次list都携带prefix: "goods_"
           const kvPage = await GoodShop.list({ prefix: "goods_", cursor });
           for (const item of kvPage.keys) {
             try {
@@ -69,6 +64,7 @@ export default {
         return Response.json(goodsList, { headers: CORS_HEADERS });
       }
 
+      // 单个商品
       if (/^\/api\/goods\/\w+$/.test(path) && request.method === "GET") {
         const goodsId = path.split("/").pop();
         const goods = await GoodShop.get(`goods_${goodsId}`, "json");
@@ -79,24 +75,26 @@ export default {
         }
       }
 
+      // 保存商品
       if (path === "/api/goods/save" && request.method === "POST") {
         const body = await request.json();
         await GoodShop.put(`goods_${body.id}`, JSON.stringify(body));
         return Response.json({ code: 200, msg: "商品保存完成" }, { headers: CORS_HEADERS });
       }
 
+      // 删除商品
       if (path === "/api/goods/del" && request.method === "POST") {
         const { id } = await request.json();
         await GoodShop.delete(`goods_${id}`);
         return Response.json({ code: 200, msg: "商品已删除" }, { headers: CORS_HEADERS });
       }
 
-      // ========== 门店接口（已修复分页prefix丢失BUG） ==========
+      // 门店列表【修复分页丢失prefix bug】
       if (path === "/api/shop" && request.method === "GET") {
         let shopList = [];
         let cursor = null;
         do {
-          // 修复点：每次分页必须携带 prefix: "shop_"
+          // 每次分页查询强制带上 prefix: "shop_"，原代码缺失此处导致多页时丢失门店数据
           const kvPage = await Shop.list({ prefix: "shop_", cursor });
           for (const item of kvPage.keys) {
             try {
@@ -111,6 +109,7 @@ export default {
         return Response.json(shopList, { headers: CORS_HEADERS });
       }
 
+      // 单个门店
       if (/^\/api\/shop\/\w+$/.test(path) && request.method === "GET") {
         const shopId = path.split("/").pop();
         const shop = await Shop.get(`shop_${shopId}`, "json");
@@ -121,12 +120,14 @@ export default {
         }
       }
 
+      // 保存门店
       if (path === "/api/shop/save" && request.method === "POST") {
         const body = await request.json();
         await Shop.put(`shop_${body.id}`, JSON.stringify(body));
         return Response.json({ code: 200, msg: "门店保存完成" }, { headers: CORS_HEADERS });
       }
 
+      // 删除门店
       if (path === "/api/shop/del" && request.method === "POST") {
         const { id } = await request.json();
         await Shop.delete(`shop_${id}`);
