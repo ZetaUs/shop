@@ -1,4 +1,4 @@
-name = "goodshop"
+name = "shop"
 main = "worker.js"
 compatibility_date = "2026-06-29"
 [[kv_namespaces]]
