@@ -2,17 +2,15 @@ name = "shop"
 main = "worker.js"
 compatibility_date = "2026-07-01"
 
-# 自定义域名路由
-[[routes]]
-pattern = "shop.zztxer.dpdns.org/*"
-zone_name = "zztxer.dpdns.org"
-
-# KV绑定：商品库 GoodShop
 [[kv_namespaces]]
 binding = "GoodShop"
 id = "c02c733b05854a2da99d2711a1a21947"
 
-# KV绑定：门店库 Shop
 [[kv_namespaces]]
 binding = "Shop"
 id = "b05710f50ec6435b901585da722ee7a6"
+
+# 路由加/*匹配所有接口路径
+[[routes]]
+pattern = "shop.zztxer.dpdns.org/*"
+custom_domain = true
