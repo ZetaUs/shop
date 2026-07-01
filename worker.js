@@ -17,9 +17,8 @@ export default {
     }
 
     try {
-      // 全局调试接口，直接输出两个KV全部key
+      // 全局调试接口
       if (path === "/api/debug") {
-        // 商品KV全量读取
         let goodsAllKeys = [];
         let cursor = null;
         do {
@@ -28,11 +27,11 @@ export default {
           cursor = page.list_complete ? null : page.cursor;
         } while (cursor);
 
-        // 门店KV全量读取（每次都带prefix，修复原BUG）
         let shopAllKeys = [];
         cursor = null;
+        // 门店KV匹配 goods_ 前缀
         do {
-          const page = await Shop.list({ prefix: "shop_", cursor });
+          const page = await Shop.list({ prefix: "goods_", cursor });
           shopAllKeys = shopAllKeys.concat(page.keys);
           cursor = page.list_complete ? null : page.cursor;
         } while (cursor);
@@ -45,20 +44,18 @@ export default {
         }, { headers: CORS_HEADERS });
       }
 
-      // 单独测试Shop读取单条（强制写入测试key验证KV是否可用）
+      // 单独测试Shop读取
       if (path === "/api/test-shop") {
-        // 写入测试门店数据
-        await Shop.put("shop_test1", JSON.stringify({ id: "test1", name: "测试门店" }));
-        // 查询所有shop_前缀key
-        const listRes = await Shop.list({ prefix: "shop_" });
-        const testData = await Shop.get("shop_test1", "json");
+        await Shop.put("goods_shop_test", JSON.stringify({ id: "test1", name: "测试门店" }));
+        const listRes = await Shop.list({ prefix: "goods_" });
+        const testData = await Shop.get("goods_shop_test", "json");
         return Response.json({
           allShopKeys: listRes.keys.map(k => k.name),
           testShopData: testData
         }, { headers: CORS_HEADERS });
       }
 
-      // ========== 商品接口 ==========
+      // ========== 商品接口（不变，goods_前缀） ==========
       if (path === "/api/goods" && request.method === "GET") {
         let goodsList = [];
         let cursor = null;
@@ -99,12 +96,13 @@ export default {
         return Response.json({ code: 200, msg: "商品已删除" }, { headers: CORS_HEADERS });
       }
 
-      // ========== 门店接口（修复分页prefix丢失BUG） ==========
+      // ========== 门店接口【已修改前缀为 goods_，匹配 goods_shop*】 ==========
       if (path === "/api/shop" && request.method === "GET") {
         let shopList = [];
         let cursor = null;
         do {
-          const kvPage = await Shop.list({ prefix: "shop_", cursor });
+          // 修改点：prefix改为 goods_，匹配 Shop 库内 goods_shop01/02/03
+          const kvPage = await Shop.list({ prefix: "goods_", cursor });
           for (const item of kvPage.keys) {
             try {
               const shop = await Shop.get(item.name, "json");
@@ -118,9 +116,10 @@ export default {
         return Response.json(shopList, { headers: CORS_HEADERS });
       }
 
+      // 单门店查询（适配goods_shopxxx格式key）
       if (/^\/api\/shop\/\w+$/.test(path) && request.method === "GET") {
         const shopId = path.split("/").pop();
-        const shop = await Shop.get(`shop_${shopId}`, "json");
+        const shop = await Shop.get(`goods_shop${shopId}`, "json");
         if (shop) {
           return Response.json({ code: 200, msg: "门店查询成功", data: shop }, { headers: CORS_HEADERS });
         } else {
@@ -128,15 +127,19 @@ export default {
         }
       }
 
+      // 保存门店（写入key为 goods_shop{id}）
       if (path === "/api/shop/save" && request.method === "POST") {
         const body = await request.json();
-        await Shop.put(`shop_${body.id}`, JSON.stringify(body));
+        const key = `goods_shop${body.id}`;
+        await Shop.put(key, JSON.stringify(body));
         return Response.json({ code: 200, msg: "门店保存完成" }, { headers: CORS_HEADERS });
       }
 
+      // 删除门店
       if (path === "/api/shop/del" && request.method === "POST") {
         const { id } = await request.json();
-        await Shop.delete(`shop_${id}`);
+        const key = `goods_shop${id}`;
+        await Shop.delete(key);
         return Response.json({ code: 200, msg: "门店已删除" }, { headers: CORS_HEADERS });
       }
 
