@@ -1,0 +1,12 @@
+name = "goodshop"
+main = "worker.js"
+compatibility_date = "2026-06-29"
+[[kv_namespaces]]
+binding = "GoodShop"
+id = "c02c733b05854a2da99d2711a1a21947"
+[[kv_namespaces]]
+binding = "Shop"
+id = "b05710f50ec6435b901585da722ee7a6"
+[[routes]]
+pattern = "goodshop.zztxer.dpdns.org"
+custom_domain = true
